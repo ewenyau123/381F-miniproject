@@ -6,7 +6,7 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 const assert = require('assert');
 const formidable = require('express-formidable');
-const mongourl = 'mongodb+srv://admin:admin@cluster0.toqh1.mongodb.net/Restaurant?retryWrites=true&w=majorit';
+const mongourl = 'mongodb://admin:admin@cluster0-shard-00-00.toqh1.mongodb.net:27017,cluster0-shard-00-01.toqh1.mongodb.net:27017,cluster0-shard-00-02.toqh1.mongodb.net:27017/Restaurant?ssl=true&replicaSet=atlas-6xp0pl-shard-0&authSource=admin&retryWrites=true&w=majority';
 const dbName = 'Restaurant';
 const googlemapurl="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQA7UPIFwtTbJHvyMpSBLBPmi0qFumJ0w&callback=initMap"
 
@@ -41,22 +41,6 @@ app.get('/', (req,res) => {
 	} else {
 		res.redirect('/list')
 	}
-});
-
-app.get('/api/restaurant/:type/:typename', (req,res) => {
-    console.log(req.params)
-    if(req.params.type == "name"){
-        const query = {name:req.params.typename}
-        api(res, query,req);
-    }
-    else if(req.params.type=="borough"){
-        const query = {borough:req.params.typename}
-        api(res, query,req);
-    }
-    else if(req.params.type=="cuisine"){
-        const query = {cuisine:req.params.typename}
-        api(res, query,req);
-    }
 });
 
 app.get('/new', (req,res) => {
@@ -136,13 +120,12 @@ app.get('/list', (req,res) => {
     if (!req.session.authenticated) {    // user not logged in!
 		res.redirect('/login');
 	} else {
-        console.log(req.query.docs)
 		handle_Find(res, req.query.docs,req);
 	}
 })
 
 app.get('/login', (req,res) => {
-	res.status(200).render('login.ejs',{});
+	res.status(200).render('login',{});
 });
 
 app.post('/logincheck', (req,res) => {
@@ -265,6 +248,7 @@ const handle_Rate = (res, criteria,req) => {
         console.log("Connected successfully to server");
         const db = client.db(dbName);
         let DOCID = {};
+        let check = false;
         DOCID['_id'] = ObjectID(criteria._id)
         findDocument(db, DOCID, (docs) => {  // docs contain 1 document (hopefully)
             client.close();
@@ -292,6 +276,25 @@ const handle_Rate = (res, criteria,req) => {
              });
         });
     });
+    
+
+
+    // const client = new MongoClient(mongourl);
+    // client.connect((err) => {
+    //     assert.equal(null, err);
+    //     console.log("Connected successfully to server");
+    //     const db = client.db(dbName);
+    //     /* use Document ID for query */
+    //     let DOCID = {};
+    //     rating = {$push:{grades:{user: req.session.username,score: req.fields.score}}}
+    //     console.log(rating)
+    //     DOCID['_id'] = ObjectID(criteria._id)
+    //     updateDocument( DOCID,rating, (docs) => {  // docs contain 1 document (hopefully)
+    //         client.close();
+    //         console.log("Closed DB connection");
+    //         res.status(200).render('rateSuccess', {});
+    //     });
+    // });
 }
 const handle_edit = (res, criteria,req) => {
     const client = new MongoClient(mongourl);
@@ -366,21 +369,6 @@ const handle_Find = (res, criteria,req) => {
             console.log("Closed DB connection");
             console.log(docs)
             res.status(200).render('list',{user: req.session.username ,nRestaurant: docs.length, restaurants: docs});
-        });
-    });
-}
-const api = (res, criteria,req) => {
-    const client = new MongoClient(mongourl);
-    client.connect((err) => {
-        assert.equal(null, err);
-        console.log("Connected successfully to server");
-        const db = client.db(dbName);
-
-        findDocument(db, criteria, (docs) => {
-            client.close();
-            console.log("Closed DB connection");
-            console.log(docs)
-            res.send(docs)
         });
     });
 }
