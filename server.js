@@ -142,7 +142,7 @@ app.get('/list', (req,res) => {
 })
 
 app.get('/login', (req,res) => {
-	res.status(200).render('login',{});
+	res.status(200).render('login.ejs',{});
 });
 
 app.post('/logincheck', (req,res) => {
