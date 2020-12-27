@@ -6,7 +6,7 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 const assert = require('assert');
 const formidable = require('express-formidable');
-const mongourl = '';
+const mongourl = 'mongodb+srv://admin:admin@cluster0.toqh1.mongodb.net/Restaurant?retryWrites=true&w=majorit';
 const dbName = 'Restaurant';
 const googlemapurl="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQA7UPIFwtTbJHvyMpSBLBPmi0qFumJ0w&callback=initMap"
 
@@ -41,6 +41,22 @@ app.get('/', (req,res) => {
 	} else {
 		res.redirect('/list')
 	}
+});
+
+app.get('/api/restaurant/:type/:typename', (req,res) => {
+    console.log(req.params)
+    if(req.params.type == "name"){
+        const query = {name:req.params.typename}
+        api(res, query,req);
+    }
+    else if(req.params.type=="borough"){
+        const query = {borough:req.params.typename}
+        api(res, query,req);
+    }
+    else if(req.params.type=="cuisine"){
+        const query = {cuisine:req.params.typename}
+        api(res, query,req);
+    }
 });
 
 app.get('/new', (req,res) => {
@@ -120,6 +136,7 @@ app.get('/list', (req,res) => {
     if (!req.session.authenticated) {    // user not logged in!
 		res.redirect('/login');
 	} else {
+        console.log(req.query.docs)
 		handle_Find(res, req.query.docs,req);
 	}
 })
@@ -368,6 +385,21 @@ const handle_Find = (res, criteria,req) => {
             console.log("Closed DB connection");
             console.log(docs)
             res.status(200).render('list',{user: req.session.username ,nRestaurant: docs.length, restaurants: docs});
+        });
+    });
+}
+const api = (res, criteria,req) => {
+    const client = new MongoClient(mongourl);
+    client.connect((err) => {
+        assert.equal(null, err);
+        console.log("Connected successfully to server");
+        const db = client.db(dbName);
+
+        findDocument(db, criteria, (docs) => {
+            client.close();
+            console.log("Closed DB connection");
+            console.log(docs)
+            res.send(docs)
         });
     });
 }
