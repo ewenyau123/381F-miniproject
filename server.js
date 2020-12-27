@@ -6,9 +6,9 @@ const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 const assert = require('assert');
 const formidable = require('express-formidable');
-const mongourl = 'mongodb://admin:admin@cluster0-shard-00-00.toqh1.mongodb.net:27017,cluster0-shard-00-01.toqh1.mongodb.net:27017,cluster0-shard-00-02.toqh1.mongodb.net:27017/Restaurant?ssl=true&replicaSet=atlas-6xp0pl-shard-0&authSource=admin&retryWrites=true&w=majority';
+const mongourl = '';
 const dbName = 'Restaurant';
-const googlemapurl="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQA7UPIFwtTbJHvyMpSBLBPmi0qFumJ0w&callback=initMap"
+const googlemapurl=""
 
 const fs = require('fs');
 
