@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<title>W3.CSS Template</title>
+<title>Details</title>
 <!--Map API-->
 <script src="https://polyfill.io/v3/polyfill.min.js?features=default"></script>
     <script
-      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBIwzALxUPNbatRBj3Xi1Uhp0fFzwWNBkE&callback=initMap&libraries=&v=weekly"
+      src= "<%=mapAPI%>"
       defer
     ></script>
 <!--End of API-->
@@ -89,7 +89,7 @@ body {
   <div class="w3-container">
     <!--image-->
     <%if (restaurant.photo){ %>
-  	    <img class="w3-image" src="data:<%=restaurant.mimetype %>;bas64, <%=restaurant.photo %>" width="1500" height="700"> 
+  	    <img class="w3-image" src="data:<%= restaurant.photo_mimetpye%>;base64, <%=restaurant.photo%>" width="1500" height="700"> 
     <br><br>
     <% } %>
         <table class="w3-table w3-striped">

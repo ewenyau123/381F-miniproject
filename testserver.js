@@ -5,29 +5,34 @@ const app = express();
 const MongoClient = require('mongodb').MongoClient;
 const ObjectID = require('mongodb').ObjectID;
 const assert = require('assert');
+const formidable = require('express-formidable');
 const mongourl = 'mongodb+srv://admin:admin@cluster0.toqh1.mongodb.net/Restaurant?retryWrites=true&w=majority';
 const dbName = 'Restaurant';
+const googlemapurl="https://maps.googleapis.com/maps/api/js?key=AIzaSyBQA7UPIFwtTbJHvyMpSBLBPmi0qFumJ0w&callback=initMap"
 
+const fs = require('fs');
+
+app.use(formidable());
 app.set('view engine','ejs');
+
 
 const SECRETKEY = 'I want to pass COMPS381F';
 
 const users = new Array(
 	{name: 'developer', password: 'developer'},
-	{name: 'guest', password: 'guest'}
+	{name: 'guest', password: ''}
 );
 
-app.set('view engine','ejs');
 
 app.use(session({
   name: 'loginSession',
   keys: [SECRETKEY],
-  maxAge:60 * 1000
+  maxAge:3*60 * 1000
 }));
 
 // support parsing of application/json type post data
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req,res) => {
     console.log(req.session.authenticated)
@@ -94,7 +99,6 @@ app.post('/edit', (req,res) => {
 
 app.post('/rate', (req,res) => {
 
-    console.log(req.body)
     if (!req.session.authenticated) {    // user not logged in!
 		res.redirect('/login');
 	} else {
@@ -124,11 +128,13 @@ app.get('/login', (req,res) => {
 	res.status(200).render('login',{});
 });
 
-app.post('/login', (req,res) => {
+app.post('/logincheck', (req,res) => {
+    console.log("post login")
+    console.log(req)
 	users.forEach((user) => {
-		if (user.name == req.body.username && user.password == req.body.password) {
+		if (user.name == req.fields.username && user.password == req.fields.password) {
 			req.session.authenticated = true;
-			req.session.username = req.body.username;	 	
+			req.session.username = req.fields.username;	 	
 		}
 	});
 	res.redirect('/');
@@ -159,31 +165,61 @@ const handle_insert = (res, criteria,req) => {
     client.connect((err) => {
         assert.equal(null, err);
         console.log("Connected successfully to server");
-        const db = client.db(dbName);
-        console.log(req.body)
-        console.log(criteria)
+        const db = client.db(dbName); 
+    });
+    let DOCID = {};
+    console.log(req)
+    if (req.files.image.size>0){
+        //console.log("hi")
+        fs.readFile(req.files.image.path,(err,data)=>{
+            assert.equal(err,null);
+            newdata={
+                address : {
+                    building: req.fields.building,
+                    coord:[req.fields.xcoord,req.fields.ycoord],
+                    street: req.fields.street,
+                    zipcode:req.fields.zipcode
+                },
+                borough:req.fields.borough,
+                cuisine: req.fields.cuisine,
+                photo:new Buffer.from(data).toString('base64'),
+                photo_mimetpye:req.files.image.type,
+                grades:[],
+                name: req.fields.name,
+                restaurant_id:"",
+                owner:req.fields.owner
+            }
+            console.log(newdata)
+            insertDocument( DOCID,newdata, (docs) => {  // docs contain 1 document (hopefully)
+                client.close();
+                console.log("Closed DB connection");
+                res.status(200).render('createSuccess', {});
+                });
+
+        });
+    }else{
         newdata={
             address : {
-                building: req.body.building,
-                coord:[req.body.xcoord,req.body.ycoord],
-                street: req.body.street,
-                zipcode:req.body.zipcode
+                building: req.fields.building,
+                coord:[req.fields.xcoord,req.fields.ycoord],
+                street: req.fields.street,
+                zipcode:req.fields.zipcode
             },
-            borough:req.body.borough,
-            cuisine: req.body.cuisine,
-            photo:req.body.image,
+            borough:req.fields.borough,
+            cuisine: req.fields.cuisine,
+            photo:"",
             photo_mimetpye:"",
             grades:[],
-            name: req.body.name,
+            name: req.fields.name,
             restaurant_id:"",
-            owner:req.body.owner
+            owner:req.fields.owner
         }
-        insertDocument(criteria,newdata,()=>{
+        insertDocument( DOCID,newdata, (docs) => {  // docs contain 1 document (hopefully)
             client.close();
             console.log("Closed DB connection");
             res.status(200).render('createSuccess', {});
-        })
-    });
+            });
+    }
 }
 
 const handle_delete = (res, criteria,req) => {
@@ -214,13 +250,12 @@ const handle_Rate = (res, criteria,req) => {
 
         /* use Document ID for query */
         let DOCID = {};
-        rating = {$push:{grades:{user: req.session.username,score: req.body.score}}}
+        rating = {$push:{grades:{user: req.session.username,score: req.fields.score}}}
         console.log(rating)
         DOCID['_id'] = ObjectID(criteria._id)
         updateDocument( DOCID,rating, (docs) => {  // docs contain 1 document (hopefully)
             client.close();
             console.log("Closed DB connection");
-            // res.send("done")
             res.status(200).render('rateSuccess', {});
         });
     });
@@ -231,31 +266,59 @@ const handle_edit = (res, criteria,req) => {
         assert.equal(null, err);
         console.log("Connected successfully to server");
         const db = client.db(dbName);
-
-        /* use Document ID for query */
         let DOCID = {};
-        updatedata = {
-            $set:{
-                address : {
-                    building: req.body.building,
-                    coord:[req.body.xcoord,req.body.ycoord],
-                    street: req.body.street,
-                    zipcode:req.body.zipcode
-                },
-                borough:req.body.borough,
-                cuisine: req.body.cuisine,
-                photo:req.body.image,
-                photo_mimetpye:"",
-                name: req.body.name,
+        /*use Document ID for query */
+        DOCID['_id'] = ObjectID(req.fields._id)
+        if (req.files.image.size>0){
+            //console.log("hi")
+            fs.readFile(req.files.image.path,(err,data)=>{
+                assert.equal(err,null);
+                updatedata = {
+                    $set:{
+                        address : {
+                            building: req.fields.building,
+                            coord:[req.fields.xcoord,req.fields.ycoord],
+                            street: req.fields.street,
+                            zipcode:req.fields.zipcode
+                        },
+                        borough:req.fields.borough,
+                        cuisine: req.fields.cuisine,
+                        name: req.fields.name,
+                        photo:new Buffer.from(data).toString('base64'),
+                        photo_mimetpye:req.files.image.type
+                        }
                 }
+                console.log(updatedata)
+               updateDocument( DOCID,updatedata, (docs) => {  // docs contain 1 document (hopefully)
+                    client.close();
+                    console.log("Closed DB connection");
+                    res.status(200).render('updateSuccess', {});
+                    });
+
+            });
+        }else{
+            updatedata = {
+                $set:{
+                    address : {
+                        building: req.fields.building,
+                        coord:[req.fields.xcoord,req.fields.ycoord],
+                        street: req.fields.street,
+                        zipcode:req.fields.zipcode
+                    },
+                    borough:req.fields.borough,
+                    cuisine: req.fields.cuisine,
+                    name: req.fields.name,
+                    photo:new Buffer.from(data).toString('base64'),
+                    photo_mimetpye:req.files.image.type
+                    }
+                }
+            updateDocument( DOCID,updatedata, (docs) => {  // docs contain 1 document (hopefully)
+                client.close();
+                console.log("Closed DB connection");
+                res.status(200).render('updateSuccess', {});
+                });
         }
-        console.log(updatedata)
-        DOCID['_id'] = ObjectID(criteria._id)
-        updateDocument( DOCID,updatedata, (docs) => {  // docs contain 1 document (hopefully)
-            client.close();
-            console.log("Closed DB connection");
-            res.status(200).render('updateSuccess', {});
-        });
+
     });
 }
 const handle_Find = (res, criteria,req) => {
@@ -303,7 +366,7 @@ const handle_Details = (res, criteria,req) => {
         findDocument(db, DOCID, (docs) => {  // docs contain 1 document (hopefully)
             client.close();
             console.log("Closed DB connection");
-            res.status(200).render('display', {restaurant:docs[0],user :req.session.username});
+            res.status(200).render('display', {restaurant:docs[0],user :req.session.username,mapAPI: googlemapurl});
         });
     });
 }
@@ -361,4 +424,4 @@ const insertDocument = (criteria, newdata, callback) => {
     });
 }
 
-app.listen(process.env.PORT || 9000);
+app.listen(app.listen(process.env.PORT || 9000));

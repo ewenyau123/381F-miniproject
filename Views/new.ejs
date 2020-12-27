@@ -25,7 +25,7 @@ body {font-size:16px;}
   
   <!--input form-->
   <div class="w3-container" id="contact" style="margin-top:75px">
-  <form action="/new" method="post">
+  <form action="/new" method="post" enctype="multipart/form-data">
       <div class="w3-section">
       	<p>Owner:
         <input class="w3-input w3-border" type="text" name="owner" value="<%=user%>" readonly>

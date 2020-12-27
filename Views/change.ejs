@@ -25,13 +25,14 @@ body {font-size:16px;}
   
   <!--input form-->
   <div class="w3-container" id="contact" style="margin-top:75px">
-  <form action="/edit?_id=<%=restaurant._id%>" method="post">
+  <form action="/edit" method="POST" enctype="multipart/form-data">
       <div class="w3-section">
       	<p>Owner:
         <input class="w3-input w3-border" type="text" name="owner" value="<%=restaurant.owner%>" readonly>
       	</p>
       	<!--must require name -->
-      	<p style="color:red">*Restaurant Name:
+        <p style="color:red">*Restaurant Name:
+        <input type="hidden" name="_id" value=<%= restaurant._id %>>
         <input class="w3-input w3-border" type="text" name="name" value="<%=restaurant.name%>" required>
         </p>
         <p>Borough:

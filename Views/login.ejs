@@ -23,12 +23,12 @@ img {margin-bottom: -7px}
     </div>
 
     <!-- Form pass to /processlogin-->
-    <form action="/login" method="post" class="w3-contaoner w3-card-4">
+    <form action="/logincheck" method="post" class="w3-contaoner w3-card-4">
     <div id="login" class="w3-container w3-white w3-padding-16 myLink">
     <div class="w3-row-padding" style="margin:0 -16px;">
         <p>
           <label>UserName:</label>
-          <input name="username" class="w3-input w3-border" type="text" placeholder="Enter your username">
+          <input name="username" class="w3-input w3-border" type="text" placeholder="Enter your username" required>
         </p>
         <p>
           <label>Password</label>
